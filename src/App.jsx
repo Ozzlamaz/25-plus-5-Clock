@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {faArrowDown} from '@fortawesome/free-solid-svg-icons'
 import {faArrowUp} from '@fortawesome/free-solid-svg-icons'
 import {faPlay} from '@fortawesome/free-solid-svg-icons'
-import {faPause} from '@fortawesome/free-solid-svg-icons'
 import {faArrowsRotate} from '@fortawesome/free-solid-svg-icons'
+
+let sessionCount = null;
+let breakCount = null;
 
 function App() {
   
@@ -14,51 +16,89 @@ function App() {
   const [breakLength, setBreak] = useState(300000);
   const [displaySession, setDisplaySession] = useState(25);
   const [displayBreak, setDisplayBreak] = useState(5);
+  const alarm = useRef(null);
 
-  let sessionCount;
-  let breakCount;
   let breakMinutes = Math.floor(breakLength/1000/60);
   let breakSeconds = Math.round(((breakLength/1000/60) - breakMinutes) * 60);
   let sessionMinutes = Math.floor(sessionLength/1000/60);
   let sessionSeconds = Math.round(((sessionLength/1000/60) - sessionMinutes) * 60);
- 
+  let sessionFormat = sessionMinutes.toString().padStart(2,'0')+':'+sessionSeconds.toString().padStart(2,'0');
+  let breakFormat = breakMinutes.toString().padStart(2,'0')+':'+breakSeconds.toString().padStart(2,'0')
+  
+
+  
+  
   const handleDuration = (e) => {
    
-    if (e.currentTarget.id == 'break-decrement' && breakLength > 60000) {
+    if (e.currentTarget.id == 'break-decrement' && breakLength > 60000 && sessionCount == null && breakCount == null) {
       setDisplayBreak(displayBreak - 1);
       setBreak(breakLength - 60000);
-      return
+      return;
     }
-    if (e.currentTarget.id == 'break-increment' && breakLength < 3600000) {
+    if (e.currentTarget.id == 'break-increment' && breakLength < 3600000 && sessionCount == null && breakCount == null) {
       setDisplayBreak(displayBreak + 1);
       setBreak(breakLength + 60000);
-      return
+      return;
     }
-    if (e.currentTarget.id == 'session-decrement' && sessionLength > 60000) {
+    if (e.currentTarget.id == 'session-decrement' && sessionLength > 60000 && sessionCount == null && breakCount == null) {
       setDisplaySession(displaySession - 1);
       setSession(sessionLength - 60000);
-      return
+      return;
     }
-    if (e.currentTarget.id == 'session-increment' && sessionLength < 3600000) {
+    if (e.currentTarget.id == 'session-increment' && sessionLength < 3600000 && sessionCount == null && breakCount == null) {
       setDisplaySession(displaySession + 1);
       setSession(sessionLength + 60000);
-      return
+      return;
     }
   }
 
-  const handleStart = (e) => {
+  const handleStartStop = () => {
+    if(sessionCount) {
+      clearInterval(sessionCount);
+      sessionCount = null;
+      return;
+    }
+    if(breakCount) {
+      clearInterval(breakCount);
+      breakCount = null;
+      return
+    }
+    if(sessionLength > 0) {
       sessionCount = setInterval(countSession, 1000);
+      return;
+    }
+    if(sessionLength < 0) {
+      breakCount = setInterval(countBreak, 1000);
+      return;
+    } 
+  }
+
+  const handleReset = () => {
+    setSession(1500000);
+    setBreak(300000);
+    setDisplaySession(25);
+    setDisplayBreak(5);
+    clearInterval(sessionCount);
+    sessionCount = null;
+    clearInterval(breakCount);
+    breakCount = null;
+    alarm.current.pause();
+    alarm.current.currentTime = 0;
   }
 
   const countSession = () => {
     setSession((prevsession) => {
       let newSession = prevsession - 1000;
-      if(newSession == 0) {
+      if (newSession <= 10000) {
+        document.getElementById('time-left').classList.add('text-danger');
+      }
+      if(newSession < 0) {
         clearInterval(sessionCount);
-        setTimeout(() => {
-          document.querySelectorAll('.timer').forEach(elem => elem.classList.toggle('d-none'));
-          breakCount = setInterval(countBreak, 1000);
-        },3000);
+        sessionCount = null;
+        alarm.current.play();
+        setBreak(displayBreak*60*1000);        
+        document.getElementById('time-left').classList.remove('text-danger');
+        breakCount = setInterval(countBreak, 1000);
         return newSession
       }
       return newSession;
@@ -68,8 +108,16 @@ function App() {
   const countBreak = () => {
     setBreak((prevBreak) => {
       let newBreak = prevBreak - 1000;
-      if(newBreak == 0) {
-        clearInterval(countBreak);
+      if (newBreak <= 10000) {
+        document.getElementById('time-left').classList.add('text-danger');
+      }
+      if(newBreak < 0) {
+        clearInterval(breakCount);
+        breakCount == null;
+        alarm.current.play();
+        setSession(displaySession*60*1000);    
+        document.getElementById('time-left').classList.remove('text-danger');
+        sessionCount = setInterval(countSession, 1000);
         return newBreak;
       }
       return newBreak;
@@ -77,6 +125,7 @@ function App() {
   }
 
   return (
+    <>
       <div className='container bg-dark text-white py-3'>
         <div className='h1'>25 + 5 Clock</div>
 
@@ -105,23 +154,19 @@ function App() {
         <div className='container-fluid border border-secondary rounded mt-5 mb-1 py-2'>
 
           <div className='timer'>
-            <div className='h2' id='timer-label'>Session</div>
-            <div className='h1' id='time-left'>{sessionMinutes.toString().padStart(2,'0')}:{sessionSeconds.toString().padStart(2,'0')}</div>
+            <div className='h2' id='timer-label'>{sessionLength < 0 ? 'Break' : 'Session'}</div>
+            <div className='h1' id='time-left'>{sessionLength < 0 ? breakFormat : sessionFormat}</div>
+            <audio ref={alarm} id='beep' src='src/assets/alarm.mp3'></audio>
           </div>
 
-          <div className='timer d-none'>
-            <div className='h2' id='timer-label'>Break</div>
-            <div className='h1' id='time-left'>{breakMinutes.toString().padStart(2,'0')}:{breakSeconds.toString().padStart(2,'0')}</div>
-          </div>
-
-          <div className='play-controls'>
-            <button type='button' className='btn btn-primary mx-1 controls' id='start_stop' onClick={handleStart}><FontAwesomeIcon icon={faPlay} /></button>
-            <button type='button' className='btn btn-primary mx-1 d-none controls' id='pause'><FontAwesomeIcon icon={faPause} /></button>
-            <button type='button' className='btn btn-warning mx-1 controls' id='reset'><FontAwesomeIcon icon={faArrowsRotate} /></button>
-           </div> 
+          <div className='controls'>
+            <button type='button' className='btn btn-primary mx-1 start-stop' id='start_stop' onClick={handleStartStop}><FontAwesomeIcon icon={faPlay} /></button>
+            <button type='button' className='btn btn-warning mx-1' id='reset' onClick={handleReset}><FontAwesomeIcon icon={faArrowsRotate} /></button>
+          </div> 
         </div>
-        
       </div>
+      <div className='fw-bold text-white mt-5'>By Ahmad Osman</div>
+    </>  
   )
 }
 
