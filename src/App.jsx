@@ -6,6 +6,7 @@ import {faArrowDown} from '@fortawesome/free-solid-svg-icons'
 import {faArrowUp} from '@fortawesome/free-solid-svg-icons'
 import {faPlay} from '@fortawesome/free-solid-svg-icons'
 import {faArrowsRotate} from '@fortawesome/free-solid-svg-icons'
+import {faFreeCodeCamp, faLinkedin} from '@fortawesome/free-brands-svg-icons'
 
 let sessionCount = null;
 let breakCount = null;
@@ -126,7 +127,7 @@ function App() {
 
   return (
     <>
-      <div className='container bg-dark text-white py-3'>
+      <div className='container bg-dark py-3 text-white'>
         <div className='h1'>25 + 5 Clock</div>
 
         <div className='settings'>
@@ -165,7 +166,11 @@ function App() {
           </div> 
         </div>
       </div>
-      <div className='fw-bold text-white mt-5'>By Ahmad Osman</div>
+      <footer className='mt-5 py-2'>
+        <div className='fw-bold text-white mx-1'>By Ahmad Osman</div>
+        <div className='mx-1 my-0 h3 hover-effect'><a href=""><FontAwesomeIcon icon={faLinkedin} style={{color: "#ffffff",}} /></a></div>
+        <div className='mx-1 my-0 h3 hover-effect'><a href="https://www.freecodecamp.org/fccd5aa6897-439f-4b3e-b4a9-c5bda7c2e055"><FontAwesomeIcon icon={faFreeCodeCamp} style={{color: "#ffffff",}} /></a></div>
+      </footer>
     </>  
   )
 }
